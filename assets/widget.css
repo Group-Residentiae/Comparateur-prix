@@ -1,0 +1,221 @@
+.pcw-garden-widget{
+  --ink:#0b1220;
+  --muted: rgba(17,24,39,.58);
+  --glass-bg: rgba(255,255,255,0.15);
+  --glass-border: rgba(255,255,255,0.80);
+  --glass-radius: 24px;
+  --glass-shadow: 0 8px 32px rgba(31,38,135,0.18), inset 0 4px 20px rgba(255,255,255,0.28);
+
+  /* compact */
+  --title: 18px;
+  --subtitle: 12.5px;
+  --chip: 13px;
+  --count: 13px;
+  --card-title: 16px;
+  --pill: 13px;
+  --btn: 14px;
+  --pad: 14px;
+
+  width:100%;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  color: var(--ink);
+}
+
+.pcw-garden-widget *{ box-sizing:border-box; }
+
+.pcw-wrap{
+  position:relative;
+  width:100%;
+  padding: var(--pad);
+  border-radius: var(--glass-radius);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  overflow:hidden;
+}
+
+.pcw-wrap::before{
+  content:"";
+  position:absolute; inset:-50px;
+  background:
+    radial-gradient(650px 220px at 15% 0%, rgba(59,130,246,.16), transparent 60%),
+    radial-gradient(520px 220px at 90% 25%, rgba(34,197,94,.12), transparent 62%),
+    radial-gradient(520px 240px at 10% 92%, rgba(168,85,247,.10), transparent 60%);
+  filter: blur(14px);
+  opacity:.55;
+  pointer-events:none;
+}
+
+.pcw-wrap::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background: rgba(255,255,255,0.10);
+  border-radius: var(--glass-radius);
+  box-shadow:
+    inset -10px -8px 0px -11px rgba(255,255,255,1),
+    inset 0px -9px 0px -8px rgba(255,255,255,1);
+  opacity: 0.55;
+  pointer-events:none;
+  filter: blur(1px) brightness(112%);
+}
+
+.pcw-inner{ position:relative; z-index:1; }
+
+.pcw-header{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.pcw-title{ margin:0; font-size: var(--title); font-weight:950; letter-spacing:-0.02em; line-height:1.15; }
+.pcw-sub{ margin:6px 0 0; font-size: var(--subtitle); color: var(--muted); }
+
+.pcw-chips{
+  display:flex; gap:10px; overflow:auto;
+  -webkit-overflow-scrolling:touch;
+  padding: 10px 2px 12px;
+  border-top:1px solid rgba(0,0,0,.06);
+  margin-top:12px;
+}
+.pcw-chip{
+  flex:0 0 auto;
+  padding:9px 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.70);
+  background: rgba(255,255,255,.16);
+  backdrop-filter: blur(6px) saturate(160%);
+  -webkit-backdrop-filter: blur(6px) saturate(160%);
+  color: var(--ink);
+  font-size: var(--chip);
+  font-weight: 900;
+  cursor:pointer;
+}
+.pcw-chip[aria-pressed="true"]{
+  background: rgba(11,18,32,.92);
+  border-color: rgba(11,18,32,.92);
+  color:#fff;
+}
+
+.pcw-results-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:8px; padding-top:10px;
+  border-top:1px solid rgba(0,0,0,.06);
+}
+.pcw-results-count{ font-size: var(--count); font-weight:900; color: rgba(17,24,39,.78); }
+.pcw-reset{
+  border:none; background:transparent; cursor:pointer;
+  font-size: var(--count); font-weight:900;
+  color: rgba(17,24,39,.82);
+  text-decoration:underline; padding:6px 0;
+}
+
+.pcw-carousel{
+  display:flex; gap:14px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scroll-snap-type: x mandatory;
+  padding: 14px 2px 6px;
+}
+.pcw-card{
+  scroll-snap-align: start;
+  flex: 0 0 84%;
+  max-width: 520px;
+  min-width: 260px;
+  position: relative;
+  border-radius: 20px;
+  padding: 14px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.80);
+  box-shadow: 0 8px 32px rgba(31,38,135,0.12), inset 0 4px 20px rgba(255,255,255,0.22);
+  backdrop-filter: blur(8px) saturate(170%);
+  -webkit-backdrop-filter: blur(8px) saturate(170%);
+  overflow:hidden;
+}
+.pcw-card::after{
+  content:'';
+  position:absolute; inset:0;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.08);
+  box-shadow:
+    inset -10px -8px 0px -11px rgba(255,255,255,1),
+    inset 0px -9px 0px -8px rgba(255,255,255,1);
+  opacity: 0.42;
+  pointer-events:none;
+  filter: blur(1px) brightness(110%);
+}
+.pcw-card > *{ position:relative; z-index:1; }
+
+@media (min-width: 900px){ .pcw-card{ flex-basis: 42%; } }
+@media (min-width: 1180px){ .pcw-card{ flex-basis: 30%; } }
+
+.pcw-name{ margin:0 0 10px; font-size: var(--card-title); font-weight:950; letter-spacing:-0.02em; }
+
+.pcw-pills{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 4px; }
+.pcw-pill{
+  font-size: var(--pill);
+  padding: 9px 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.70);
+  background: rgba(255,255,255,.16);
+  color: rgba(17,24,39,.76);
+  font-weight: 900;
+  backdrop-filter: blur(6px) saturate(160%);
+  -webkit-backdrop-filter: blur(6px) saturate(160%);
+}
+
+.pcw-card-bottom{ margin-top: 14px; display:flex; justify-content:flex-start; }
+.pcw-cta{
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(11,18,32,.95);
+  color: #fff;
+  border-radius: 16px;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: var(--btn);
+  font-weight: 950;
+  white-space: nowrap;
+  box-shadow: 0 14px 26px rgba(11,18,32,.16);
+}
+
+.pcw-offers{
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.80);
+  background: rgba(255,255,255,0.14);
+  backdrop-filter: blur(8px) saturate(170%);
+  -webkit-backdrop-filter: blur(8px) saturate(170%);
+  box-shadow: inset 0 4px 20px rgba(255,255,255,0.20);
+}
+.pcw-offersTop{ display:flex; justify-content:flex-end; margin-bottom:10px; }
+.pcw-closeOffers{
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.55);
+  border-radius: 12px;
+  padding: 9px 10px;
+  cursor: pointer;
+  font-weight: 950;
+  font-size: 13px;
+  color: rgba(17,24,39,.80);
+}
+.pcw-offersStatus{ font-size: 12.5px; color: rgba(17,24,39,.60); margin: 0 0 10px; font-weight: 900; }
+
+.pcw-state{
+  padding:14px;
+  border:1px dashed rgba(0,0,0,.14);
+  border-radius:18px;
+  color: rgba(17,24,39,.55);
+  background: rgba(255,255,255,.20);
+}
+
+.pcw-skeleton{
+  height: 170px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.26), rgba(255,255,255,.10));
+  background-size:200% 100%;
+  animation: pcwShimmer 1.2s infinite;
+  border: 1px solid rgba(255,255,255,.70);
+}
+@keyframes pcwShimmer { 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
+  .pcw-wrap, .pcw-card, .pcw-chip, .pcw-pill, .pcw-offers{ background: rgba(255,255,255,.92) !important; }
+}

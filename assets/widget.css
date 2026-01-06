@@ -178,7 +178,7 @@
   box-shadow:
     inset -10px -8px 0px -11px rgba(255,255,255,1),
     inset 0px -9px 0px -8px rgba(255,255,255,1);
-  opacity: 0.22; /* ✅ réduit : moins de “plaque blanche” */
+  opacity: 0.22;
   pointer-events:none;
   filter: blur(1px) brightness(110%);
 }
@@ -196,8 +196,7 @@
 }
 
 /* =========================
-   LAYOUT dans la carte
-   (texte à gauche / image à droite)
+   ✅ LAYOUT FIX : image à droite (même en mobile)
    ========================= */
 .pcw-cardRow{
   display:flex;
@@ -211,11 +210,10 @@
 }
 
 .pcw-media{
-  flex: 0 0 44%;
-  min-width: 140px;
+  flex: 0 0 42%;
+  min-width: 160px;
   max-width: 260px;
   border-radius: 18px;
-  /* ✅ IMPORTANT : pas de fond blanc */
   background: transparent;
   border: 1px solid rgba(255,255,255,0.55);
   box-shadow: none;
@@ -223,8 +221,6 @@
   display:flex;
   align-items:center;
   justify-content:center;
-
-  /* conserve le style glass sans “plaque” */
   backdrop-filter: blur(10px) saturate(170%);
   -webkit-backdrop-filter: blur(10px) saturate(170%);
 }
@@ -239,18 +235,18 @@
   border: none;
   outline: none;
   box-shadow: none;
-  image-rendering: auto;
 }
 
-/* Mobile : image dessous si besoin */
+/* ✅ si l’iframe devient très étroite : on réduit juste la colonne image, mais on ne la met PAS en dessous */
 @media (max-width: 520px){
-  .pcw-cardRow{ flex-direction: column; }
   .pcw-media{
-    flex-basis: auto;
-    max-width: none;
-    min-height: 140px;
+    flex-basis: 38%;
+    min-width: 120px;
   }
-  .pcw-media img{ width: 42%; max-width: 160px; }
+  .pcw-media img{
+    width: 78%;
+    max-width: 150px;
+  }
 }
 
 /* =========================

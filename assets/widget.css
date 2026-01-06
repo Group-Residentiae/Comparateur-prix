@@ -68,22 +68,6 @@
 .pcw-title{ margin:0; font-size: var(--title); font-weight:950; letter-spacing:-0.02em; line-height:1.15; }
 .pcw-sub{ margin:6px 0 0; font-size: var(--subtitle); color: var(--muted); }
 
-/* === ICONS (chips + produits) === */
-.pcw-ico{
-  width:18px;
-  height:18px;
-  flex:0 0 auto;
-  object-fit:contain;
-  opacity:.95;
-  transform: translateY(1px);
-}
-.pcw-chip{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-
-/* Chips */
 .pcw-chips{
   display:flex; gap:10px; overflow:auto;
   -webkit-overflow-scrolling:touch;
@@ -123,7 +107,6 @@
   text-decoration:underline; padding:6px 0;
 }
 
-/* Carousel produits */
 .pcw-carousel{
   display:flex; gap:14px;
   overflow-x:auto;
@@ -163,15 +146,25 @@
 @media (min-width: 900px){ .pcw-card{ flex-basis: 42%; } }
 @media (min-width: 1180px){ .pcw-card{ flex-basis: 30%; } }
 
-/* Titre produit + icône */
+/* =========================
+   ✅ NEW: Product icon (in cards only)
+   (shows left of the product title)
+   ========================= */
+.pcw-icon{
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  object-fit: contain;
+  display: block;
+  opacity: .92;
+  filter: drop-shadow(0 6px 12px rgba(11,18,32,.10));
+}
+
 .pcw-name{
   margin:0 0 10px;
   font-size: var(--card-title);
   font-weight:950;
   letter-spacing:-0.02em;
-  display:flex;
-  align-items:center;
-  gap:10px;
 }
 
 .pcw-pills{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 4px; }
@@ -201,7 +194,6 @@
   box-shadow: 0 14px 26px rgba(11,18,32,.16);
 }
 
-/* Bloc Affilizz */
 .pcw-offers{
   margin-top: 12px;
   padding: 12px;

@@ -1,365 +1,267 @@
-(() => {
-  const mount = document.querySelector(".pcw-garden-widget");
-  if (!mount) return;
+.pcw-garden-widget{
+  --ink:#0b1220;
+  --muted: rgba(17,24,39,.58);
+  --glass-bg: rgba(255,255,255,0.15);
+  --glass-border: rgba(255,255,255,0.80);
+  --glass-radius: 24px;
+  --glass-shadow: 0 8px 32px rgba(31,38,135,0.18), inset 0 4px 20px rgba(255,255,255,0.28);
 
-  const TITLE = "Comparateur de prix — Accessoires de Jardinage";
-  const SUBTITLE = "Choisis une catégorie puis slide horizontalement sur les produits.";
-  const AFFILIZZ_SCRIPT_SRC = "https://sc.affilizz.com/affilizz.js";
-  const CSV_URL = mount.getAttribute("data-csv-url");
+  /* compact */
+  --title: 18px;
+  --subtitle: 12.5px;
+  --chip: 13px;
+  --count: 13px;
+  --card-title: 16px;
+  --pill: 13px;
+  --btn: 14px;
+  --pad: 14px;
 
-  // ✅ Base icons: .../assets/icons/ (calculée depuis l'URL de widget.js)
-  const SCRIPT_SRC = (document.currentScript && document.currentScript.src) ? document.currentScript.src : location.href;
-  const ICONS_BASE = new URL("assets/icons/", SCRIPT_SRC).toString();
+  width:100%;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  color: var(--ink);
+}
 
-  function postHeight() {
-    const h = Math.max(
-      document.body.scrollHeight,
-      document.documentElement.scrollHeight,
-      document.body.offsetHeight,
-      document.documentElement.offsetHeight
-    );
-    window.parent && window.parent.postMessage({ type: "pcw:resize", height: h }, "*");
-  }
+.pcw-garden-widget *{ box-sizing:border-box; }
 
-  const ro = new ResizeObserver(() => postHeight());
-  ro.observe(document.documentElement);
-  window.addEventListener("load", () => setTimeout(postHeight, 50));
+.pcw-wrap{
+  position:relative;
+  width:100%;
+  padding: var(--pad);
+  border-radius: var(--glass-radius);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  overflow:hidden;
+}
 
-  function loadAffilizzOnce() {
-    return new Promise((resolve, reject) => {
-      const existing = document.querySelector(`script[src="${AFFILIZZ_SCRIPT_SRC}"]`);
-      if (existing) {
-        if (existing.dataset && existing.dataset.loaded === "1") return resolve();
-        existing.addEventListener("load", resolve, { once: true });
-        existing.addEventListener("error", () => reject(new Error("Affilizz script failed")), { once: true });
-        return;
-      }
-      const s = document.createElement("script");
-      s.src = AFFILIZZ_SCRIPT_SRC;
-      s.async = true;
-      s.type = "text/javascript";
-      s.addEventListener("load", () => { s.dataset.loaded = "1"; resolve(); });
-      s.addEventListener("error", () => reject(new Error("Affilizz script failed")));
-      document.head.appendChild(s);
-    });
-  }
+.pcw-wrap::before{
+  content:"";
+  position:absolute; inset:-50px;
+  background:
+    radial-gradient(650px 220px at 15% 0%, rgba(59,130,246,.16), transparent 60%),
+    radial-gradient(520px 220px at 90% 25%, rgba(34,197,94,.12), transparent 62%),
+    radial-gradient(520px 240px at 10% 92%, rgba(168,85,247,.10), transparent 60%);
+  filter: blur(14px);
+  opacity:.55;
+  pointer-events:none;
+}
 
-  // ✅ Normalisation plus robuste (retire accents + ponctuation)
-  function norm(s){
-    return (s ?? "")
-      .toString()
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-      .replace(/[^a-z0-9]+/g, " ")
-      .trim();
-  }
-  function uniq(arr){ return Array.from(new Set(arr.filter(Boolean))); }
-  function escapeHtml(str){
-    return String(str ?? "")
-      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-  }
-  function escapeAttr(str){ return escapeHtml(str).replaceAll("\n"," ").trim(); }
+.pcw-wrap::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background: rgba(255,255,255,0.10);
+  border-radius: var(--glass-radius);
+  box-shadow:
+    inset -10px -8px 0px -11px rgba(255,255,255,1),
+    inset 0px -9px 0px -8px rgba(255,255,255,1);
+  opacity: 0.55;
+  pointer-events:none;
+  filter: blur(1px) brightness(112%);
+}
 
-  // =========================
-  // ✅ ICON MAPPING (produits seulement)
-  // =========================
-  function iconForProduct(productName){
-    const n = norm(productName);
+.pcw-inner{ position:relative; z-index:1; }
 
-    // Rouleau à gazon
-    if (n.includes("rouleau") && n.includes("gazon")) {
-      return ICONS_BASE + "rouleau-gazon.png";
-    }
+.pcw-header{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.pcw-title{ margin:0; font-size: var(--title); font-weight:950; letter-spacing:-0.02em; line-height:1.15; }
+.pcw-sub{ margin:6px 0 0; font-size: var(--subtitle); color: var(--muted); }
 
-    // Récupérateur d'eau de pluie (tolérant aux variantes)
-    if (
-      (n.includes("recuperateur") && (n.includes("pluie") || n.includes("eau"))) ||
-      (n.includes("cuve") && (n.includes("pluie") || n.includes("eau"))) ||
-      (n.includes("reservoir") && (n.includes("pluie") || n.includes("eau")))
-    ) {
-      return ICONS_BASE + "recuperateur-pluie.png";
-    }
+.pcw-chips{
+  display:flex; gap:10px; overflow:auto;
+  -webkit-overflow-scrolling:touch;
+  padding: 10px 2px 12px;
+  border-top:1px solid rgba(0,0,0,.06);
+  margin-top:12px;
+}
+.pcw-chip{
+  flex:0 0 auto;
+  padding:9px 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.70);
+  background: rgba(255,255,255,.16);
+  backdrop-filter: blur(6px) saturate(160%);
+  -webkit-backdrop-filter: blur(6px) saturate(160%);
+  color: var(--ink);
+  font-size: var(--chip);
+  font-weight: 900;
+  cursor:pointer;
+}
+.pcw-chip[aria-pressed="true"]{
+  background: rgba(11,18,32,.92);
+  border-color: rgba(11,18,32,.92);
+  color:#fff;
+}
 
-    return "";
-  }
+.pcw-results-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:8px; padding-top:10px;
+  border-top:1px solid rgba(0,0,0,.06);
+}
+.pcw-results-count{ font-size: var(--count); font-weight:900; color: rgba(17,24,39,.78); }
+.pcw-reset{
+  border:none; background:transparent; cursor:pointer;
+  font-size: var(--count); font-weight:900;
+  color: rgba(17,24,39,.82);
+  text-decoration:underline; padding:6px 0;
+}
 
-  function detectDelimiter(line){
-    const commas = (line.match(/,/g) || []).length;
-    const semis  = (line.match(/;/g) || []).length;
-    return semis > commas ? ";" : ",";
-  }
+.pcw-carousel{
+  display:flex; gap:14px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scroll-snap-type: x mandatory;
+  padding: 14px 2px 6px;
+}
 
-  function splitCSVLine(line, sep){
-    const out = [];
-    let cur = "", inQ = false;
-    for (let i=0;i<line.length;i++){
-      const ch = line[i];
-      if (inQ){
-        if (ch === '"'){
-          if (line[i+1] === '"'){ cur += '"'; i++; }
-          else inQ = false;
-        } else cur += ch;
-      } else {
-        if (ch === '"') inQ = true;
-        else if (ch === sep){ out.push(cur); cur=""; }
-        else cur += ch;
-      }
-    }
-    out.push(cur);
-    return out;
-  }
+.pcw-card{
+  scroll-snap-align: start;
+  flex: 0 0 84%;
+  max-width: 640px;
+  min-width: 280px;
+  position: relative;
+  border-radius: 20px;
+  padding: 14px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.80);
+  box-shadow: 0 8px 32px rgba(31,38,135,0.12), inset 0 4px 20px rgba(255,255,255,0.22);
+  backdrop-filter: blur(8px) saturate(170%);
+  -webkit-backdrop-filter: blur(8px) saturate(170%);
+  overflow:hidden;
+}
+.pcw-card::after{
+  content:'';
+  position:absolute; inset:0;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.08);
+  box-shadow:
+    inset -10px -8px 0px -11px rgba(255,255,255,1),
+    inset 0px -9px 0px -8px rgba(255,255,255,1);
+  opacity: 0.42;
+  pointer-events:none;
+  filter: blur(1px) brightness(110%);
+}
+.pcw-card > *{ position:relative; z-index:1; }
 
-  function parseCSV(text){
-    const lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n").filter(l => l.trim().length);
-    if (!lines.length) return { headers: [], rows: [] };
-    const sep = detectDelimiter(lines[0]);
-    const headers = splitCSVLine(lines[0], sep).map(h => h.trim());
-    const rows = lines.slice(1).map(l => splitCSVLine(l, sep));
-    return { headers, rows };
-  }
+@media (min-width: 900px){ .pcw-card{ flex-basis: 52%; } }
+@media (min-width: 1180px){ .pcw-card{ flex-basis: 36%; } }
 
-  function mapRows(headers, rows){
-    const map = {};
-    headers.forEach((h, i) => { map[norm(h)] = i; });
+/* =========================
+   ✅ Layout 2 colonnes dans la card:
+   - gauche: infos
+   - droite: thumbnail (ton rectangle vert)
+   ========================= */
+.pcw-cardRow{
+  display:flex;
+  gap:14px;
+  align-items:stretch;
+}
 
-    const idxOf = (...keys) => {
-      for (const k of keys){
-        const idx = map[norm(k)];
-        if (idx != null && idx >= 0) return idx;
-      }
-      return -1;
-    };
+.pcw-cardMain{
+  flex: 1 1 auto;
+  min-width: 0;
+}
 
-    const iCat    = idxOf("Catégorie","Categorie","Category");
-    const iProd   = idxOf("title","Titre","Produit","Product","Nom","name");
-    const iOffers = idxOf("Nb d'offres","Nombre d'offres","offers","nb_offres");
-    const iRefs   = idxOf("Nb de références","Nb de references","references","refs","nb_references");
-    const iPid    = idxOf("publication_content_id","publication content id","pubid","publication-id");
+.pcw-cardThumb{
+  flex: 0 0 38%;
+  min-width: 150px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.80);
+  background: rgba(255,255,255,0.12);
+  box-shadow: inset 0 4px 18px rgba(255,255,255,0.18);
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
 
-    const out = [];
-    for (const r of rows){
-      const get = (i) => (i >= 0 && i < r.length) ? String(r[i] ?? "").trim() : "";
-      const product = get(iProd);
-      if (!product) continue;
-      out.push({
-        category: get(iCat),
-        product,
-        offers: get(iOffers),
-        refs: get(iRefs),
-        publication_content_id: get(iPid),
-      });
-    }
-    return out;
-  }
+.pcw-thumbImg{
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+  display:block;
+  opacity: .92;
+  filter: drop-shadow(0 10px 18px rgba(11,18,32,.12));
+}
 
-  mount.innerHTML = `
-    <section class="pcw-wrap" aria-label="${TITLE}">
-      <div class="pcw-inner">
-        <div class="pcw-header">
-          <div>
-            <h3 class="pcw-title">${TITLE}</h3>
-            <p class="pcw-sub">${SUBTITLE}</p>
-          </div>
-        </div>
+/* si pas d'image, on garde un bloc propre (vide) */
+.pcw-cardThumb.is-empty{
+  background: rgba(255,255,255,0.08);
+}
 
-        <div class="pcw-chips" role="tablist" aria-label="Catégories" data-slot="cats">
-          <button class="pcw-chip" type="button" aria-pressed="true" data-cat="Tout">Tout</button>
-        </div>
+.pcw-name{ margin:0 0 10px; font-size: var(--card-title); font-weight:950; letter-spacing:-0.02em; }
 
-        <div class="pcw-results-head">
-          <div class="pcw-results-count" data-slot="count">Produits : —</div>
-          <button class="pcw-reset" type="button" data-action="reset">Réinitialiser</button>
-        </div>
+.pcw-pills{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 4px; }
+.pcw-pill{
+  font-size: var(--pill);
+  padding: 9px 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.70);
+  background: rgba(255,255,255,.16);
+  color: rgba(17,24,39,.76);
+  font-weight: 900;
+  backdrop-filter: blur(6px) saturate(160%);
+  -webkit-backdrop-filter: blur(6px) saturate(160%);
+}
 
-        <div class="pcw-carousel" data-slot="carousel" aria-label="Produits (défilement horizontal)">
-          <div class="pcw-skeleton"></div>
-          <div class="pcw-skeleton"></div>
-          <div class="pcw-skeleton"></div>
-        </div>
-      </div>
-    </section>
-  `;
+.pcw-card-bottom{ margin-top: 14px; display:flex; justify-content:flex-start; }
+.pcw-cta{
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(11,18,32,.95);
+  color: #fff;
+  border-radius: 16px;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: var(--btn);
+  font-weight: 950;
+  white-space: nowrap;
+  box-shadow: 0 14px 26px rgba(11,18,32,.16);
+}
 
-  const $ = (sel) => mount.querySelector(sel);
-  const $$ = (sel) => Array.from(mount.querySelectorAll(sel));
+.pcw-offers{
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.80);
+  background: rgba(255,255,255,0.14);
+  backdrop-filter: blur(8px) saturate(170%);
+  -webkit-backdrop-filter: blur(8px) saturate(170%);
+  box-shadow: inset 0 4px 20px rgba(255,255,255,0.20);
+}
+.pcw-offersTop{ display:flex; justify-content:flex-end; margin-bottom:10px; }
+.pcw-closeOffers{
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.55);
+  border-radius: 12px;
+  padding: 9px 10px;
+  cursor: pointer;
+  font-weight: 950;
+  font-size: 13px;
+  color: rgba(17,24,39,.80);
+}
+.pcw-offersStatus{ font-size: 12.5px; color: rgba(17,24,39,.60); margin: 0 0 10px; font-weight: 900; }
 
-  const state = { raw: [], cat: "Tout" };
+.pcw-state{
+  padding:14px;
+  border:1px dashed rgba(0,0,0,.14);
+  border-radius:18px;
+  color: rgba(17,24,39,.55);
+  background: rgba(255,255,255,.20);
+}
 
-  function setCount(n){
-    $('[data-slot="count"]').textContent = `Produits : ${n}`;
-    postHeight();
-  }
+.pcw-skeleton{
+  height: 170px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.26), rgba(255,255,255,.10));
+  background-size:200% 100%;
+  animation: pcwShimmer 1.2s infinite;
+  border: 1px solid rgba(255,255,255,.70);
+}
+@keyframes pcwShimmer { 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
 
-  function setChips(categories){
-    const catsEl = $('[data-slot="cats"]');
-    const cats = ["Tout", ...categories.sort((a,b)=>a.localeCompare(b,"fr"))];
-    catsEl.innerHTML = cats.map((c, i) => `
-      <button class="pcw-chip" type="button" aria-pressed="${i===0 ? "true":"false"}" data-cat="${escapeAttr(c)}">${escapeHtml(c)}</button>
-    `).join("");
-
-    $$(".pcw-chip").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        $$(".pcw-chip").forEach(b => b.setAttribute("aria-pressed","false"));
-        btn.setAttribute("aria-pressed","true");
-        state.cat = btn.dataset.cat || "Tout";
-        render();
-      });
-    });
-  }
-
-  function applyFilters(){
-    let list = state.raw.slice();
-    if (state.cat !== "Tout") list = list.filter(r => r.category === state.cat);
-    return list;
-  }
-
-  function renderAffilizz(mountEl, publicationId){
-    mountEl.innerHTML = "";
-    const el = document.createElement("affilizz-rendering-component");
-    el.setAttribute("loading", "lazy");
-    el.setAttribute("publication-content-id", publicationId);
-    mountEl.appendChild(el);
-  }
-
-  function openOffers(card){
-    const pubId = (card.getAttribute("data-pubid") || "").trim();
-    const panel = card.querySelector('[data-slot="offers"]');
-    const status = card.querySelector('[data-slot="offersStatus"]');
-    const mountEl = card.querySelector('[data-slot="offersMount"]');
-
-    panel.style.display = "block";
-    postHeight();
-
-    if (!pubId){
-      status.textContent = "Aucune offre (publication_content_id manquant).";
-      mountEl.innerHTML = "";
-      postHeight();
-      return;
-    }
-
-    status.textContent = "Chargement…";
-    postHeight();
-
-    loadAffilizzOnce()
-      .then(() => {
-        renderAffilizz(mountEl, pubId);
-        status.textContent = "";
-        setTimeout(postHeight, 80);
-      })
-      .catch(() => {
-        status.textContent = "Comparateur indisponible pour le moment.";
-        mountEl.innerHTML = "";
-        postHeight();
-      });
-  }
-
-  function closeOffers(card){
-    const panel = card.querySelector('[data-slot="offers"]');
-    const status = card.querySelector('[data-slot="offersStatus"]');
-    const mountEl = card.querySelector('[data-slot="offersMount"]');
-    panel.style.display = "none";
-    status.textContent = "";
-    mountEl.innerHTML = "";
-    postHeight();
-  }
-
-  function render(){
-    const list = applyFilters();
-    setCount(list.length);
-
-    const carousel = $('[data-slot="carousel"]');
-
-    if (!list.length){
-      carousel.innerHTML = `<div class="pcw-state"><strong>Aucun produit.</strong><br/>Change de catégorie ou réinitialise.</div>`;
-      postHeight();
-      return;
-    }
-
-    carousel.innerHTML = list.map((r) => {
-      const offers = (r.offers || "").toString().replace(/[^\d]/g,"");
-      const refs   = (r.refs   || "").toString().replace(/[^\d]/g,"");
-      const nOffers = offers ? Number(offers) : null;
-      const nRefs   = refs ? Number(refs) : null;
-
-      const iconUrl = iconForProduct(r.product || "");
-      const thumbEmptyClass = iconUrl ? "" : "is-empty";
-
-      return `
-        <article class="pcw-card" data-pubid="${escapeAttr(r.publication_content_id || "")}">
-          <div class="pcw-cardRow">
-            <div class="pcw-cardMain">
-              <h4 class="pcw-name">${escapeHtml(r.product || "Produit")}</h4>
-
-              <div class="pcw-pills">
-                ${nOffers != null && !Number.isNaN(nOffers) ? `<span class="pcw-pill">${nOffers} offres</span>` : ``}
-                ${nRefs   != null && !Number.isNaN(nRefs)   ? `<span class="pcw-pill">${nRefs} références</span>` : ``}
-              </div>
-
-              <div class="pcw-card-bottom">
-                <button class="pcw-cta" type="button" data-action="toggleOffers">Afficher les offres</button>
-              </div>
-            </div>
-
-            <div class="pcw-cardThumb ${thumbEmptyClass}">
-              ${iconUrl ? `<img class="pcw-thumbImg" src="${escapeAttr(iconUrl)}" alt="" loading="lazy" decoding="async">` : ``}
-            </div>
-          </div>
-
-          <div class="pcw-offers" data-slot="offers" style="display:none;">
-            <div class="pcw-offersTop">
-              <button class="pcw-closeOffers" type="button" data-action="closeOffers">Fermer</button>
-            </div>
-            <p class="pcw-offersStatus" data-slot="offersStatus">Chargement…</p>
-            <div data-slot="offersMount"></div>
-          </div>
-        </article>
-      `;
-    }).join("");
-
-    postHeight();
-  }
-
-  mount.addEventListener("click", (e) => {
-    const card = e.target.closest(".pcw-card");
-    if (!card) return;
-
-    const openBtn = e.target.closest('button[data-action="toggleOffers"]');
-    const closeBtn = e.target.closest('button[data-action="closeOffers"]');
-
-    if (closeBtn){ e.preventDefault(); closeOffers(card); return; }
-    if (openBtn){
-      e.preventDefault();
-      const panel = card.querySelector('[data-slot="offers"]');
-      const isOpen = panel && panel.style.display !== "none";
-      if (isOpen) closeOffers(card); else openOffers(card);
-    }
-  });
-
-  mount.querySelector('[data-action="reset"]').addEventListener("click", () => {
-    state.cat = "Tout";
-    $$(".pcw-chip").forEach((b,i)=>b.setAttribute("aria-pressed", i===0 ? "true":"false"));
-    render();
-  });
-
-  (async () => {
-    try {
-      const res = await fetch(CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now(), { cache: "no-store" });
-      const text = await res.text();
-
-      const parsed = parseCSV(text);
-      state.raw = mapRows(parsed.headers, parsed.rows);
-
-      const categories = uniq(state.raw.map(r => r.category)).filter(Boolean);
-      setChips(categories);
-
-      render();
-      setTimeout(postHeight, 80);
-    } catch (err) {
-      console.error("[PCW] CSV error:", err);
-      $('[data-slot="carousel"]').innerHTML = `<div class="pcw-state"><strong>Impossible de charger le CSV.</strong><br/>Vérifie l’URL et la console.</div>`;
-      setCount("—");
-      postHeight();
-    }
-  })();
-})();
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
+  .pcw-wrap, .pcw-card, .pcw-chip, .pcw-pill, .pcw-offers{ background: rgba(255,255,255,.92) !important; }
+}

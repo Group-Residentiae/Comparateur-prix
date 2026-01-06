@@ -261,4 +261,60 @@
             <button class="pcw-cta" type="button" data-action="toggleOffers">Afficher les offres</button>
           </div>
 
-          <d
+          <div class="pcw-offers" data-slot="offers" style="display:none;">
+            <div class="pcw-offersTop">
+              <button class="pcw-closeOffers" type="button" data-action="closeOffers">Fermer</button>
+            </div>
+            <p class="pcw-offersStatus" data-slot="offersStatus">Chargement…</p>
+            <div data-slot="offersMount"></div>
+          </div>
+        </article>
+      `;
+    }).join("");
+
+    postHeight();
+  }
+
+  mount.addEventListener("click", (e) => {
+    const card = e.target.closest(".pcw-card");
+    if (!card) return;
+
+    const openBtn = e.target.closest('button[data-action="toggleOffers"]');
+    const closeBtn = e.target.closest('button[data-action="closeOffers"]');
+
+    if (closeBtn){ e.preventDefault(); closeOffers(card); return; }
+    if (openBtn){
+      e.preventDefault();
+      const panel = card.querySelector('[data-slot="offers"]');
+      const isOpen = panel && panel.style.display !== "none";
+      if (isOpen) closeOffers(card); else openOffers(card);
+    }
+  });
+
+  mount.querySelector('[data-action="reset"]').addEventListener("click", () => {
+    state.cat = "Tout";
+    $$(".pcw-chip").forEach((b,i)=>b.setAttribute("aria-pressed", i===0 ? "true":"false"));
+    render();
+  });
+
+  (async () => {
+    try {
+      const res = await fetch(CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now(), { cache: "no-store" });
+      const text = await res.text();
+
+      const parsed = parseCSV(text);
+      state.raw = mapRows(parsed.headers, parsed.rows);
+
+      const categories = uniq(state.raw.map(r => r.category)).filter(Boolean);
+      setChips(categories);
+
+      render();
+      setTimeout(postHeight, 80);
+    } catch (err) {
+      console.error("[PCW] CSV error:", err);
+      $('[data-slot="carousel"]').innerHTML = `<div class="pcw-state"><strong>Impossible de charger le CSV.</strong><br/>Vérifie l’URL et la console.</div>`;
+      setCount("—");
+      postHeight();
+    }
+  })();
+})();

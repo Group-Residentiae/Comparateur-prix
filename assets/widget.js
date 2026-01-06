@@ -5,11 +5,19 @@
   const TITLE = "Comparateur de prix — Accessoires de Jardinage";
   const SUBTITLE = "Choisis une catégorie puis slide horizontalement sur les produits.";
   const AFFILIZZ_SCRIPT_SRC = "https://sc.affilizz.com/affilizz.js";
-  const CSV_URL = mount.getAttribute("data-csv-url");
 
-  // ✅ Base icons: .../assets/icons/ (calculée depuis l'URL de widget.js)
-  const SCRIPT_SRC = (document.currentScript && document.currentScript.src) ? document.currentScript.src : location.href;
-  const ICONS_BASE = new URL("assets/icons/", SCRIPT_SRC).toString();
+  const CSV_URL = mount.getAttribute("data-csv-url");
+  if (!CSV_URL) {
+    console.error("[PCW] data-csv-url manquant sur .pcw-garden-widget");
+  }
+
+  // ✅ IMPORTANT: base icônes dérivée de l’URL du CSV (GitHub Pages) ou surchargée via data-icons-base
+  const ICONS_BASE =
+    mount.getAttribute("data-icons-base") ||
+    (CSV_URL ? new URL("assets/icons/", CSV_URL).toString() : "https://group-residentiae.github.io/Comparateur-prix/assets/icons/");
+
+  // Bump si cache navigateur/CDN
+  const ICON_VERSION = "1";
 
   function postHeight() {
     const h = Math.max(
@@ -38,108 +46,104 @@
       s.src = AFFILIZZ_SCRIPT_SRC;
       s.async = true;
       s.type = "text/javascript";
-      s.addEventListener("load", () => { s.dataset.loaded = "1"; resolve(); });
+      s.addEventListener("load", () => {
+        s.dataset.loaded = "1";
+        resolve();
+      });
       s.addEventListener("error", () => reject(new Error("Affilizz script failed")));
       document.head.appendChild(s);
     });
   }
 
-  // ✅ Normalisation plus robuste (retire accents + ponctuation)
-  function norm(s){
+  function norm(s) {
     return (s ?? "")
       .toString()
       .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-      .replace(/[^a-z0-9]+/g, " ")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .trim();
   }
-  function uniq(arr){ return Array.from(new Set(arr.filter(Boolean))); }
-  function escapeHtml(str){
+  function uniq(arr) {
+    return Array.from(new Set(arr.filter(Boolean)));
+  }
+  function escapeHtml(str) {
     return String(str ?? "")
-      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
-  function escapeAttr(str){ return escapeHtml(str).replaceAll("\n"," ").trim(); }
-
-  // =========================
-  // ✅ ICON MAPPING (produits seulement)
-  // =========================
-  function iconForProduct(productName){
-    const n = norm(productName);
-
-    // Rouleau à gazon
-    if (n.includes("rouleau") && n.includes("gazon")) {
-      return ICONS_BASE + "rouleau-gazon.png";
-    }
-
-    // Récupérateur d'eau de pluie (tolérant aux variantes)
-    if (
-      (n.includes("recuperateur") && (n.includes("pluie") || n.includes("eau"))) ||
-      (n.includes("cuve") && (n.includes("pluie") || n.includes("eau"))) ||
-      (n.includes("reservoir") && (n.includes("pluie") || n.includes("eau")))
-    ) {
-      return ICONS_BASE + "recuperateur-pluie.png";
-    }
-
-    return "";
+  function escapeAttr(str) {
+    return escapeHtml(str).replaceAll("\n", " ").trim();
   }
 
-  function detectDelimiter(line){
+  // ---------------- CSV parsing
+  function detectDelimiter(line) {
     const commas = (line.match(/,/g) || []).length;
-    const semis  = (line.match(/;/g) || []).length;
+    const semis = (line.match(/;/g) || []).length;
     return semis > commas ? ";" : ",";
   }
-
-  function splitCSVLine(line, sep){
+  function splitCSVLine(line, sep) {
     const out = [];
-    let cur = "", inQ = false;
-    for (let i=0;i<line.length;i++){
+    let cur = "",
+      inQ = false;
+    for (let i = 0; i < line.length; i++) {
       const ch = line[i];
-      if (inQ){
-        if (ch === '"'){
-          if (line[i+1] === '"'){ cur += '"'; i++; }
-          else inQ = false;
+      if (inQ) {
+        if (ch === '"') {
+          if (line[i + 1] === '"') {
+            cur += '"';
+            i++;
+          } else inQ = false;
         } else cur += ch;
       } else {
         if (ch === '"') inQ = true;
-        else if (ch === sep){ out.push(cur); cur=""; }
-        else cur += ch;
+        else if (ch === sep) {
+          out.push(cur);
+          cur = "";
+        } else cur += ch;
       }
     }
     out.push(cur);
     return out;
   }
-
-  function parseCSV(text){
-    const lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n").filter(l => l.trim().length);
+  function parseCSV(text) {
+    const lines = text
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .split("\n")
+      .filter((l) => l.trim().length);
     if (!lines.length) return { headers: [], rows: [] };
     const sep = detectDelimiter(lines[0]);
-    const headers = splitCSVLine(lines[0], sep).map(h => h.trim());
-    const rows = lines.slice(1).map(l => splitCSVLine(l, sep));
+    const headers = splitCSVLine(lines[0], sep).map((h) => h.trim());
+    const rows = lines.slice(1).map((l) => splitCSVLine(l, sep));
     return { headers, rows };
   }
 
-  function mapRows(headers, rows){
+  function mapRows(headers, rows) {
     const map = {};
-    headers.forEach((h, i) => { map[norm(h)] = i; });
+    headers.forEach((h, i) => {
+      map[norm(h)] = i;
+    });
 
     const idxOf = (...keys) => {
-      for (const k of keys){
+      for (const k of keys) {
         const idx = map[norm(k)];
         if (idx != null && idx >= 0) return idx;
       }
       return -1;
     };
 
-    const iCat    = idxOf("Catégorie","Categorie","Category");
-    const iProd   = idxOf("title","Titre","Produit","Product","Nom","name");
-    const iOffers = idxOf("Nb d'offres","Nombre d'offres","offers","nb_offres");
-    const iRefs   = idxOf("Nb de références","Nb de references","references","refs","nb_references");
-    const iPid    = idxOf("publication_content_id","publication content id","pubid","publication-id");
+    const iCat = idxOf("Catégorie", "Categorie", "Category");
+    const iProd = idxOf("title", "Titre", "Produit", "Product", "Nom", "name");
+    const iOffers = idxOf("Nb d'offres", "Nombre d'offres", "offers", "nb_offres", "Nb offres");
+    const iRefs = idxOf("Nb de références", "Nb de references", "references", "refs", "nb_references", "Nb references");
+    const iPid = idxOf("publication_content_id", "publication content id", "pubid", "publication-id");
 
     const out = [];
-    for (const r of rows){
-      const get = (i) => (i >= 0 && i < r.length) ? String(r[i] ?? "").trim() : "";
+    for (const r of rows) {
+      const get = (i) => (i >= 0 && i < r.length ? String(r[i] ?? "").trim() : "");
       const product = get(iProd);
       if (!product) continue;
       out.push({
@@ -153,13 +157,37 @@
     return out;
   }
 
+  // ---------------- Icons (products only)
+  function iconUrl(file) {
+    return `${ICONS_BASE}${file}?v=${ICON_VERSION}`;
+  }
+
+  function iconForProduct(productName) {
+    const n = norm(productName);
+
+    // Rouleau à gazon
+    if (n.includes("rouleau") && n.includes("gazon")) return iconUrl("rouleau-gazon.png");
+
+    // Récupérateur pluie/eau (tolérant)
+    if (
+      (n.includes("recuperateur") && (n.includes("pluie") || n.includes("eau"))) ||
+      (n.includes("cuve") && (n.includes("pluie") || n.includes("eau"))) ||
+      (n.includes("reservoir") && (n.includes("pluie") || n.includes("eau")))
+    ) {
+      return iconUrl("recuperateur-pluie.png");
+    }
+
+    return "";
+  }
+
+  // ---------------- UI
   mount.innerHTML = `
-    <section class="pcw-wrap" aria-label="${TITLE}">
+    <section class="pcw-wrap" aria-label="${escapeAttr(TITLE)}">
       <div class="pcw-inner">
         <div class="pcw-header">
           <div>
-            <h3 class="pcw-title">${TITLE}</h3>
-            <p class="pcw-sub">${SUBTITLE}</p>
+            <h3 class="pcw-title">${escapeHtml(TITLE)}</h3>
+            <p class="pcw-sub">${escapeHtml(SUBTITLE)}</p>
           </div>
         </div>
 
@@ -186,35 +214,40 @@
 
   const state = { raw: [], cat: "Tout" };
 
-  function setCount(n){
+  function setCount(n) {
     $('[data-slot="count"]').textContent = `Produits : ${n}`;
     postHeight();
   }
 
-  function setChips(categories){
+  function setChips(categories) {
     const catsEl = $('[data-slot="cats"]');
-    const cats = ["Tout", ...categories.sort((a,b)=>a.localeCompare(b,"fr"))];
-    catsEl.innerHTML = cats.map((c, i) => `
-      <button class="pcw-chip" type="button" aria-pressed="${i===0 ? "true":"false"}" data-cat="${escapeAttr(c)}">${escapeHtml(c)}</button>
-    `).join("");
+    const cats = ["Tout", ...categories.sort((a, b) => a.localeCompare(b, "fr"))];
+
+    catsEl.innerHTML = cats
+      .map(
+        (c, i) => `
+        <button class="pcw-chip" type="button" aria-pressed="${i === 0 ? "true" : "false"}" data-cat="${escapeAttr(c)}">${escapeHtml(c)}</button>
+      `
+      )
+      .join("");
 
     $$(".pcw-chip").forEach((btn) => {
       btn.addEventListener("click", () => {
-        $$(".pcw-chip").forEach(b => b.setAttribute("aria-pressed","false"));
-        btn.setAttribute("aria-pressed","true");
+        $$(".pcw-chip").forEach((b) => b.setAttribute("aria-pressed", "false"));
+        btn.setAttribute("aria-pressed", "true");
         state.cat = btn.dataset.cat || "Tout";
         render();
       });
     });
   }
 
-  function applyFilters(){
+  function applyFilters() {
     let list = state.raw.slice();
-    if (state.cat !== "Tout") list = list.filter(r => r.category === state.cat);
+    if (state.cat !== "Tout") list = list.filter((r) => r.category === state.cat);
     return list;
   }
 
-  function renderAffilizz(mountEl, publicationId){
+  function renderAffilizz(mountEl, publicationId) {
     mountEl.innerHTML = "";
     const el = document.createElement("affilizz-rendering-component");
     el.setAttribute("loading", "lazy");
@@ -222,7 +255,7 @@
     mountEl.appendChild(el);
   }
 
-  function openOffers(card){
+  function openOffers(card) {
     const pubId = (card.getAttribute("data-pubid") || "").trim();
     const panel = card.querySelector('[data-slot="offers"]');
     const status = card.querySelector('[data-slot="offersStatus"]');
@@ -231,7 +264,7 @@
     panel.style.display = "block";
     postHeight();
 
-    if (!pubId){
+    if (!pubId) {
       status.textContent = "Aucune offre (publication_content_id manquant).";
       mountEl.innerHTML = "";
       postHeight();
@@ -254,7 +287,7 @@
       });
   }
 
-  function closeOffers(card){
+  function closeOffers(card) {
     const panel = card.querySelector('[data-slot="offers"]');
     const status = card.querySelector('[data-slot="offersStatus"]');
     const mountEl = card.querySelector('[data-slot="offersMount"]');
@@ -264,58 +297,67 @@
     postHeight();
   }
 
-  function render(){
+  function render() {
     const list = applyFilters();
     setCount(list.length);
 
     const carousel = $('[data-slot="carousel"]');
 
-    if (!list.length){
+    if (!list.length) {
       carousel.innerHTML = `<div class="pcw-state"><strong>Aucun produit.</strong><br/>Change de catégorie ou réinitialise.</div>`;
       postHeight();
       return;
     }
 
-    carousel.innerHTML = list.map((r) => {
-      const offers = (r.offers || "").toString().replace(/[^\d]/g,"");
-      const refs   = (r.refs   || "").toString().replace(/[^\d]/g,"");
-      const nOffers = offers ? Number(offers) : null;
-      const nRefs   = refs ? Number(refs) : null;
+    carousel.innerHTML = list
+      .map((r) => {
+        const offers = (r.offers || "").toString().replace(/[^\d]/g, "");
+        const refs = (r.refs || "").toString().replace(/[^\d]/g, "");
+        const nOffers = offers ? Number(offers) : null;
+        const nRefs = refs ? Number(refs) : null;
 
-      const iconUrl = iconForProduct(r.product || "");
-      const thumbEmptyClass = iconUrl ? "" : "is-empty";
+        const icon = iconForProduct(r.product);
+        const mediaHtml = icon
+          ? `
+            <div class="pcw-media">
+              <img class="pcw-mediaImg" src="${escapeAttr(icon)}" alt="" loading="lazy" decoding="async"
+                   onerror="this.style.display='none';" />
+            </div>
+          `
+          : `<div class="pcw-media pcw-mediaEmpty" aria-hidden="true"></div>`;
 
-      return `
-        <article class="pcw-card" data-pubid="${escapeAttr(r.publication_content_id || "")}">
-          <div class="pcw-cardRow">
-            <div class="pcw-cardMain">
-              <h4 class="pcw-name">${escapeHtml(r.product || "Produit")}</h4>
+        return `
+          <article class="pcw-card" data-pubid="${escapeAttr(r.publication_content_id || "")}">
+            <div class="pcw-cardGrid">
+              <div class="pcw-left">
+                <h4 class="pcw-name">${escapeHtml(r.product || "Produit")}</h4>
 
-              <div class="pcw-pills">
-                ${nOffers != null && !Number.isNaN(nOffers) ? `<span class="pcw-pill">${nOffers} offres</span>` : ``}
-                ${nRefs   != null && !Number.isNaN(nRefs)   ? `<span class="pcw-pill">${nRefs} références</span>` : ``}
+                <div class="pcw-pills">
+                  ${nOffers != null && !Number.isNaN(nOffers) ? `<span class="pcw-pill">${nOffers} offres</span>` : ``}
+                  ${nRefs != null && !Number.isNaN(nRefs) ? `<span class="pcw-pill">${nRefs} références</span>` : ``}
+                </div>
+
+                <div class="pcw-card-bottom">
+                  <button class="pcw-cta" type="button" data-action="toggleOffers">Afficher les offres</button>
+                </div>
               </div>
 
-              <div class="pcw-card-bottom">
-                <button class="pcw-cta" type="button" data-action="toggleOffers">Afficher les offres</button>
+              <div class="pcw-right">
+                ${mediaHtml}
               </div>
             </div>
 
-            <div class="pcw-cardThumb ${thumbEmptyClass}">
-              ${iconUrl ? `<img class="pcw-thumbImg" src="${escapeAttr(iconUrl)}" alt="" loading="lazy" decoding="async">` : ``}
+            <div class="pcw-offers" data-slot="offers" style="display:none;">
+              <div class="pcw-offersTop">
+                <button class="pcw-closeOffers" type="button" data-action="closeOffers">Fermer</button>
+              </div>
+              <p class="pcw-offersStatus" data-slot="offersStatus">Chargement…</p>
+              <div data-slot="offersMount"></div>
             </div>
-          </div>
-
-          <div class="pcw-offers" data-slot="offers" style="display:none;">
-            <div class="pcw-offersTop">
-              <button class="pcw-closeOffers" type="button" data-action="closeOffers">Fermer</button>
-            </div>
-            <p class="pcw-offersStatus" data-slot="offersStatus">Chargement…</p>
-            <div data-slot="offersMount"></div>
-          </div>
-        </article>
-      `;
-    }).join("");
+          </article>
+        `;
+      })
+      .join("");
 
     postHeight();
   }
@@ -327,18 +369,23 @@
     const openBtn = e.target.closest('button[data-action="toggleOffers"]');
     const closeBtn = e.target.closest('button[data-action="closeOffers"]');
 
-    if (closeBtn){ e.preventDefault(); closeOffers(card); return; }
-    if (openBtn){
+    if (closeBtn) {
+      e.preventDefault();
+      closeOffers(card);
+      return;
+    }
+    if (openBtn) {
       e.preventDefault();
       const panel = card.querySelector('[data-slot="offers"]');
       const isOpen = panel && panel.style.display !== "none";
-      if (isOpen) closeOffers(card); else openOffers(card);
+      if (isOpen) closeOffers(card);
+      else openOffers(card);
     }
   });
 
   mount.querySelector('[data-action="reset"]').addEventListener("click", () => {
     state.cat = "Tout";
-    $$(".pcw-chip").forEach((b,i)=>b.setAttribute("aria-pressed", i===0 ? "true":"false"));
+    $$(".pcw-chip").forEach((b, i) => b.setAttribute("aria-pressed", i === 0 ? "true" : "false"));
     render();
   });
 
@@ -350,7 +397,7 @@
       const parsed = parseCSV(text);
       state.raw = mapRows(parsed.headers, parsed.rows);
 
-      const categories = uniq(state.raw.map(r => r.category)).filter(Boolean);
+      const categories = uniq(state.raw.map((r) => r.category)).filter(Boolean);
       setChips(categories);
 
       render();

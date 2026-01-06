@@ -5,19 +5,20 @@
   const TITLE = "Comparateur de prix — Accessoires de Jardinage";
   const SUBTITLE = "Choisis une catégorie puis slide horizontalement sur les produits.";
   const AFFILIZZ_SCRIPT_SRC = "https://sc.affilizz.com/affilizz.js";
-
   const CSV_URL = mount.getAttribute("data-csv-url");
-  if (!CSV_URL) {
-    console.error("[PCW] data-csv-url manquant sur .pcw-garden-widget");
-  }
 
-  // ✅ IMPORTANT: base icônes dérivée de l’URL du CSV (GitHub Pages) ou surchargée via data-icons-base
+  // Base URL des icons: /assets/icons/ (relatif au fichier widget.js)
+  const SCRIPT_URL = (() => {
+    try {
+      const s = document.currentScript && document.currentScript.src ? document.currentScript.src : "";
+      return new URL(s || location.href, location.href);
+    } catch {
+      return new URL(location.href);
+    }
+  })();
   const ICONS_BASE =
     mount.getAttribute("data-icons-base") ||
-    (CSV_URL ? new URL("assets/icons/", CSV_URL).toString() : "https://group-residentiae.github.io/Comparateur-prix/assets/icons/");
-
-  // Bump si cache navigateur/CDN
-  const ICON_VERSION = "1";
+    new URL("./assets/icons/", SCRIPT_URL).href; // => .../assets/icons/
 
   function postHeight() {
     const h = Math.max(
@@ -28,7 +29,6 @@
     );
     window.parent && window.parent.postMessage({ type: "pcw:resize", height: h }, "*");
   }
-
   const ro = new ResizeObserver(() => postHeight());
   ro.observe(document.documentElement);
   window.addEventListener("load", () => setTimeout(postHeight, 50));
@@ -61,6 +61,7 @@
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[’']/g, "'")
       .trim();
   }
   function uniq(arr) {
@@ -78,7 +79,7 @@
     return escapeHtml(str).replaceAll("\n", " ").trim();
   }
 
-  // ---------------- CSV parsing
+  // ---- CSV parsing
   function detectDelimiter(line) {
     const commas = (line.match(/,/g) || []).length;
     const semis = (line.match(/;/g) || []).length;
@@ -120,7 +121,6 @@
     const rows = lines.slice(1).map((l) => splitCSVLine(l, sep));
     return { headers, rows };
   }
-
   function mapRows(headers, rows) {
     const map = {};
     headers.forEach((h, i) => {
@@ -137,8 +137,8 @@
 
     const iCat = idxOf("Catégorie", "Categorie", "Category");
     const iProd = idxOf("title", "Titre", "Produit", "Product", "Nom", "name");
-    const iOffers = idxOf("Nb d'offres", "Nombre d'offres", "offers", "nb_offres", "Nb offres");
-    const iRefs = idxOf("Nb de références", "Nb de references", "references", "refs", "nb_references", "Nb references");
+    const iOffers = idxOf("Nb d'offres", "Nombre d'offres", "offers", "nb_offres");
+    const iRefs = idxOf("Nb de références", "Nb de references", "references", "refs", "nb_references");
     const iPid = idxOf("publication_content_id", "publication content id", "pubid", "publication-id");
 
     const out = [];
@@ -157,30 +157,32 @@
     return out;
   }
 
-  // ---------------- Icons (products only)
-  function iconUrl(file) {
-    return `${ICONS_BASE}${file}?v=${ICON_VERSION}`;
-  }
+  // ---- Icons mapping (produits -> fichiers)
+  const PRODUCT_ICON_MAP = {
+    "recuperateur d'eau de pluie": "recuperateur-pluie.png",
+    "recuperateur d’eau de pluie": "recuperateur-pluie.png",
+    "recuperateur eau de pluie": "recuperateur-pluie.png",
+    "rouleau a gazon": "rouleau-gazon.png",
+    "rouleau à gazon": "rouleau-gazon.png",
+    "rouleau gazon": "rouleau-gazon.png",
+  };
 
   function iconForProduct(productName) {
-    const n = norm(productName);
+    const k = norm(productName);
+    // match direct
+    if (PRODUCT_ICON_MAP[k]) return new URL(PRODUCT_ICON_MAP[k], ICONS_BASE).href;
 
-    // Rouleau à gazon
-    if (n.includes("rouleau") && n.includes("gazon")) return iconUrl("rouleau-gazon.png");
-
-    // Récupérateur pluie/eau (tolérant)
-    if (
-      (n.includes("recuperateur") && (n.includes("pluie") || n.includes("eau"))) ||
-      (n.includes("cuve") && (n.includes("pluie") || n.includes("eau"))) ||
-      (n.includes("reservoir") && (n.includes("pluie") || n.includes("eau")))
-    ) {
-      return iconUrl("recuperateur-pluie.png");
+    // match "contient" (au cas où le CSV a des variantes)
+    if (k.includes("recuperateur") && k.includes("pluie")) {
+      return new URL("recuperateur-pluie.png", ICONS_BASE).href;
     }
-
+    if (k.includes("rouleau") && k.includes("gazon")) {
+      return new URL("rouleau-gazon.png", ICONS_BASE).href;
+    }
     return "";
   }
 
-  // ---------------- UI
+  // ---- DOM
   mount.innerHTML = `
     <section class="pcw-wrap" aria-label="${escapeAttr(TITLE)}">
       <div class="pcw-inner">
@@ -222,12 +224,11 @@
   function setChips(categories) {
     const catsEl = $('[data-slot="cats"]');
     const cats = ["Tout", ...categories.sort((a, b) => a.localeCompare(b, "fr"))];
-
     catsEl.innerHTML = cats
       .map(
         (c, i) => `
-        <button class="pcw-chip" type="button" aria-pressed="${i === 0 ? "true" : "false"}" data-cat="${escapeAttr(c)}">${escapeHtml(c)}</button>
-      `
+      <button class="pcw-chip" type="button" aria-pressed="${i === 0 ? "true" : "false"}" data-cat="${escapeAttr(c)}">${escapeHtml(c)}</button>
+    `
       )
       .join("");
 
@@ -316,20 +317,27 @@
         const nOffers = offers ? Number(offers) : null;
         const nRefs = refs ? Number(refs) : null;
 
-        const icon = iconForProduct(r.product);
-        const mediaHtml = icon
+        const iconSrc = iconForProduct(r.product || "");
+        const mediaHtml = iconSrc
           ? `
-            <div class="pcw-media">
-              <img class="pcw-mediaImg" src="${escapeAttr(icon)}" alt="" loading="lazy" decoding="async"
-                   onerror="this.style.display='none';" />
+            <div class="pcw-media" aria-hidden="true">
+              <img
+                src="${escapeAttr(iconSrc)}"
+                alt=""
+                loading="lazy"
+                decoding="async"
+                referrerpolicy="no-referrer"
+              />
             </div>
           `
-          : `<div class="pcw-media pcw-mediaEmpty" aria-hidden="true"></div>`;
+          : `
+            <div class="pcw-media" aria-hidden="true"></div>
+          `;
 
         return `
           <article class="pcw-card" data-pubid="${escapeAttr(r.publication_content_id || "")}">
-            <div class="pcw-cardGrid">
-              <div class="pcw-left">
+            <div class="pcw-cardRow">
+              <div class="pcw-cardMain">
                 <h4 class="pcw-name">${escapeHtml(r.product || "Produit")}</h4>
 
                 <div class="pcw-pills">
@@ -342,9 +350,7 @@
                 </div>
               </div>
 
-              <div class="pcw-right">
-                ${mediaHtml}
-              </div>
+              ${mediaHtml}
             </div>
 
             <div class="pcw-offers" data-slot="offers" style="display:none;">
@@ -391,7 +397,8 @@
 
   (async () => {
     try {
-      const res = await fetch(CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now(), { cache: "no-store" });
+      const url = CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now();
+      const res = await fetch(url, { cache: "no-store" });
       const text = await res.text();
 
       const parsed = parseCSV(text);

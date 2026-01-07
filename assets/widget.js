@@ -1,25 +1,45 @@
 (() => {
-  const mount = document.querySelector(".pcw-garden-widget");
-  if (!mount) return;
+  // 1) Trouver le mount de façon robuste
+  const mount =
+    document.querySelector(".pcw-garden-widget") ||
+    document.querySelector("#pcw-garden-widget") ||
+    document.querySelector("[data-csv-url]");
+
+  if (!mount) {
+    console.error("[PCW] Mount not found (.pcw-garden-widget / #pcw-garden-widget).");
+    return;
+  }
 
   const TITLE = "Comparateur de prix — Accessoires de Jardinage";
   const SUBTITLE = "Choisis une catégorie puis slide horizontalement sur les produits.";
   const AFFILIZZ_SCRIPT_SRC = "https://sc.affilizz.com/affilizz.js";
-  const CSV_URL = mount.getAttribute("data-csv-url");
+
+  // 2) CSV_URL : attribut OU fallback automatique vers ./jardin.csv
+  const CSV_URL = (mount.getAttribute("data-csv-url") || "").trim()
+    ? new URL(mount.getAttribute("data-csv-url").trim(), document.baseURI).toString()
+    : new URL("./jardin.csv", document.baseURI).toString();
 
   function postHeight() {
-    const h = Math.max(
-      document.body.scrollHeight,
-      document.documentElement.scrollHeight,
-      document.body.offsetHeight,
-      document.documentElement.offsetHeight
-    );
-    window.parent && window.parent.postMessage({ type: "pcw:resize", height: h }, "*");
+    try {
+      const h = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.offsetHeight
+      );
+      if (window.parent) window.parent.postMessage({ type: "pcw:resize", height: h }, "*");
+    } catch (_) {}
   }
 
-  const ro = new ResizeObserver(() => postHeight());
-  ro.observe(document.documentElement);
-  window.addEventListener("load", () => setTimeout(postHeight, 50));
+  // ResizeObserver optional (ne doit jamais casser le widget)
+  try {
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => postHeight());
+      ro.observe(document.documentElement);
+    }
+  } catch (_) {}
+
+  window.addEventListener("load", () => setTimeout(postHeight, 60));
 
   function loadAffilizzOnce() {
     return new Promise((resolve, reject) => {
@@ -121,6 +141,7 @@
     return out;
   }
 
+  // 3) Render immédiat (anti “page vide”)
   mount.innerHTML = `
     <section class="pcw-wrap" aria-label="${escapeAttr(TITLE)}">
       <div class="pcw-inner">
@@ -144,6 +165,10 @@
           <div class="pcw-skeleton"></div>
           <div class="pcw-skeleton"></div>
           <div class="pcw-skeleton"></div>
+        </div>
+
+        <div class="pcw-sub" style="margin-top:10px;opacity:.75">
+          Source CSV : <span style="font-weight:800">${escapeHtml(CSV_URL)}</span>
         </div>
       </div>
     </section>
@@ -210,7 +235,7 @@
       .then(() => {
         renderAffilizz(mountEl, pubId);
         status.textContent = "";
-        setTimeout(postHeight, 80);
+        setTimeout(postHeight, 120);
       })
       .catch(() => {
         status.textContent = "Comparateur indisponible pour le moment.";
@@ -298,7 +323,9 @@
 
   (async () => {
     try {
-      const res = await fetch(CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now(), { cache: "no-store" });
+      const bust = (CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now();
+      const res = await fetch(CSV_URL + bust, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
 
       const parsed = parseCSV(text);
@@ -308,10 +335,15 @@
       setChips(categories);
 
       render();
-      setTimeout(postHeight, 80);
+      setTimeout(postHeight, 120);
     } catch (err) {
       console.error("[PCW] CSV error:", err);
-      $('[data-slot="carousel"]').innerHTML = `<div class="pcw-state"><strong>Impossible de charger le CSV.</strong><br/>Vérifie l’URL et la console.</div>`;
+      $('[data-slot="carousel"]').innerHTML =
+        `<div class="pcw-state">
+          <strong>Impossible de charger le CSV.</strong><br/>
+          CSV: ${escapeHtml(CSV_URL)}<br/>
+          Erreur: ${escapeHtml(err?.message || String(err))}
+        </div>`;
       setCount("—");
       postHeight();
     }

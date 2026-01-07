@@ -1,21 +1,19 @@
 <!doctype html>
 <html lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Comparateur de prix — Accessoires de Jardinage</title>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Comparateur de prix — Accessoires de Jardinage</title>
 
-    <!-- IMPORTANT: tes fichiers sont dans /assets -->
-    <link rel="stylesheet" href="assets/widget.css?v=1" />
-  </head>
-  <body>
-    <div
-      class="pcw-garden-widget"
-      data-csv-url="assets/jardin.csv"
-      aria-label="Comparateur de prix — Accessoires de Jardinage"
-    ></div>
+  <!-- IMPORTANT : chemins relatifs car tout est dans /assets/ -->
+  <link rel="stylesheet" href="./widget.css" />
+</head>
+<body style="margin:0;">
+  <div
+    class="pcw-garden-widget"
+    data-csv-url="./jardin.csv"
+  ></div>
 
-    <!-- IMPORTANT: ton JS est dans /assets -->
-    <script defer src="assets/widget.js?v=1"></script>
-  </body>
+  <script defer src="./widget.js"></script>
+</body>
 </html>

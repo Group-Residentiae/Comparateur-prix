@@ -64,25 +64,9 @@
 
 .pcw-inner{ position:relative; z-index:1; }
 
-.pcw-header{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:10px;
-}
-.pcw-title{
-  margin:0;
-  font-size: var(--title);
-  font-weight:950;
-  letter-spacing:-0.02em;
-  line-height:1.15;
-}
-.pcw-sub{
-  margin:6px 0 0;
-  font-size: var(--subtitle);
-  color: var(--muted);
-}
+.pcw-header{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.pcw-title{ margin:0; font-size: var(--title); font-weight:950; letter-spacing:-0.02em; line-height:1.15; }
+.pcw-sub{ margin:6px 0 0; font-size: var(--subtitle); color: var(--muted); }
 
 .pcw-chips{
   display:flex; gap:10px; overflow:auto;
@@ -115,11 +99,7 @@
   margin-top:8px; padding-top:10px;
   border-top:1px solid rgba(0,0,0,.06);
 }
-.pcw-results-count{
-  font-size: var(--count);
-  font-weight:900;
-  color: rgba(17,24,39,.78);
-}
+.pcw-results-count{ font-size: var(--count); font-weight:900; color: rgba(17,24,39,.78); }
 .pcw-reset{
   border:none; background:transparent; cursor:pointer;
   font-size: var(--count); font-weight:900;
@@ -166,19 +146,9 @@
 @media (min-width: 900px){ .pcw-card{ flex-basis: 42%; } }
 @media (min-width: 1180px){ .pcw-card{ flex-basis: 30%; } }
 
-.pcw-name{
-  margin:0 0 10px;
-  font-size: var(--card-title);
-  font-weight:950;
-  letter-spacing:-0.02em;
-}
+.pcw-name{ margin:0 0 10px; font-size: var(--card-title); font-weight:950; letter-spacing:-0.02em; }
 
-.pcw-pills{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-top: 4px;
-}
+.pcw-pills{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 4px; }
 .pcw-pill{
   font-size: var(--pill);
   padding: 9px 12px;
@@ -191,11 +161,7 @@
   -webkit-backdrop-filter: blur(6px) saturate(160%);
 }
 
-.pcw-card-bottom{
-  margin-top: 14px;
-  display:flex;
-  justify-content:flex-start;
-}
+.pcw-card-bottom{ margin-top: 14px; display:flex; justify-content:flex-start; }
 .pcw-cta{
   border: 1px solid rgba(0,0,0,.10);
   background: rgba(11,18,32,.95);
@@ -230,12 +196,7 @@
   font-size: 13px;
   color: rgba(17,24,39,.80);
 }
-.pcw-offersStatus{
-  font-size: 12.5px;
-  color: rgba(17,24,39,.60);
-  margin: 0 0 10px;
-  font-weight: 900;
-}
+.pcw-offersStatus{ font-size: 12.5px; color: rgba(17,24,39,.60); margin: 0 0 10px; font-weight: 900; }
 
 .pcw-state{
   padding:14px;

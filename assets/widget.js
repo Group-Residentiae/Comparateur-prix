@@ -6,8 +6,8 @@
   const SUBTITLE = "Choisis une catégorie puis slide horizontalement sur les produits.";
   const AFFILIZZ_SCRIPT_SRC = "https://sc.affilizz.com/affilizz.js";
 
-  // CSV : si pas fourni, fallback sur ./jardin.csv (même dossier que widget.html)
-  const CSV_URL = mount.getAttribute("data-csv-url") || new URL("./jardin.csv", window.location.href).toString();
+  // CSV défini dans widget.html via data-csv-url
+  const CSV_URL = mount.getAttribute("data-csv-url");
 
   function postHeight() {
     const h = Math.max(
@@ -124,12 +124,12 @@
   }
 
   mount.innerHTML = `
-    <section class="pcw-wrap" aria-label="${escapeAttr(TITLE)}">
+    <section class="pcw-wrap" aria-label="${TITLE}">
       <div class="pcw-inner">
         <div class="pcw-header">
           <div>
-            <h3 class="pcw-title">${escapeHtml(TITLE)}</h3>
-            <p class="pcw-sub">${escapeHtml(SUBTITLE)}</p>
+            <h3 class="pcw-title">${TITLE}</h3>
+            <p class="pcw-sub">${SUBTITLE}</p>
           </div>
         </div>
 
@@ -300,9 +300,11 @@
 
   (async () => {
     try {
-      const url = CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now();
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(`CSV HTTP ${res.status}`);
+      if (!CSV_URL) throw new Error("CSV_URL manquante (data-csv-url).");
+
+      const res = await fetch(CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error(`CSV fetch failed (${res.status})`);
+
       const text = await res.text();
 
       const parsed = parseCSV(text);
@@ -315,7 +317,8 @@
       setTimeout(postHeight, 80);
     } catch (err) {
       console.error("[PCW] CSV error:", err);
-      $('[data-slot="carousel"]').innerHTML = `<div class="pcw-state"><strong>Impossible de charger le CSV.</strong><br/>Vérifie l’URL et la console.</div>`;
+      $('[data-slot="carousel"]').innerHTML =
+        `<div class="pcw-state"><strong>Impossible de charger le CSV.</strong><br/>Vérifie l’URL et la console.</div>`;
       setCount("—");
       postHeight();
     }

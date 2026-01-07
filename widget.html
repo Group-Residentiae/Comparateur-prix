@@ -1,24 +1,20 @@
 <!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Comparateur de prix — Accessoires de Jardinage</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Comparateur de prix — Accessoires de Jardinage</title>
+    <link rel="stylesheet" href="./widget.css?v=20260107-1" />
+  </head>
 
-  <!-- Versioning anti-cache -->
-  <link rel="stylesheet" href="./widget.css?v=20260107-2" />
-</head>
-<body>
-  <!-- Tu peux laisser data-csv-url vide : le JS prendra ./jardin.csv par défaut -->
-  <div
-    id="pcw-garden-widget"
-    class="pcw-garden-widget"
-    data-csv-url="./jardin.csv"
-  ></div>
+  <body>
+    <div
+      class="pcw-garden-widget"
+      data-csv-url="https://group-residentiae.github.io/Comparateur-prix/jardin.csv"
+    >
+      <noscript>Active JavaScript pour afficher le widget.</noscript>
+    </div>
 
-  <noscript>Active JavaScript pour afficher le comparateur.</noscript>
-
-  <!-- Versioning anti-cache -->
-  <script src="./widget.js?v=20260107-2"></script>
-</body>
+    <script defer src="./widget.js?v=20260107-1"></script>
+  </body>
 </html>

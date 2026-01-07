@@ -87,6 +87,7 @@
   font-size: var(--chip);
   font-weight: 900;
   cursor:pointer;
+  white-space: nowrap;
 }
 .pcw-chip[aria-pressed="true"]{
   background: rgba(11,18,32,.92);
@@ -114,14 +115,17 @@
   scroll-snap-type: x mandatory;
   padding: 14px 2px 6px;
 }
+
 .pcw-card{
   scroll-snap-align: start;
   flex: 0 0 84%;
-  max-width: 520px;
+  max-width: 640px;
   min-width: 260px;
+
   position: relative;
   border-radius: 20px;
   padding: 14px;
+
   background: rgba(255,255,255,0.15);
   border: 1px solid rgba(255,255,255,0.80);
   box-shadow: 0 8px 32px rgba(31,38,135,0.12), inset 0 4px 20px rgba(255,255,255,0.22);
@@ -146,7 +150,12 @@
 @media (min-width: 900px){ .pcw-card{ flex-basis: 42%; } }
 @media (min-width: 1180px){ .pcw-card{ flex-basis: 30%; } }
 
-.pcw-name{ margin:0 0 10px; font-size: var(--card-title); font-weight:950; letter-spacing:-0.02em; }
+.pcw-name{
+  margin:0 0 10px;
+  font-size: var(--card-title);
+  font-weight:950;
+  letter-spacing:-0.02em;
+}
 
 .pcw-pills{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 4px; }
 .pcw-pill{
@@ -185,6 +194,7 @@
   -webkit-backdrop-filter: blur(8px) saturate(170%);
   box-shadow: inset 0 4px 20px rgba(255,255,255,0.20);
 }
+
 .pcw-offersTop{ display:flex; justify-content:flex-end; margin-bottom:10px; }
 .pcw-closeOffers{
   border: 1px solid rgba(0,0,0,.10);
@@ -196,6 +206,7 @@
   font-size: 13px;
   color: rgba(17,24,39,.80);
 }
+
 .pcw-offersStatus{ font-size: 12.5px; color: rgba(17,24,39,.60); margin: 0 0 10px; font-weight: 900; }
 
 .pcw-state{

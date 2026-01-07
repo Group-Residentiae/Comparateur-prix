@@ -5,7 +5,9 @@
   const TITLE = "Comparateur de prix — Accessoires de Jardinage";
   const SUBTITLE = "Choisis une catégorie puis slide horizontalement sur les produits.";
   const AFFILIZZ_SCRIPT_SRC = "https://sc.affilizz.com/affilizz.js";
-  const CSV_URL = mount.getAttribute("data-csv-url") || "./jardin.csv";
+
+  // CSV : si pas fourni, fallback sur ./jardin.csv (même dossier que widget.html)
+  const CSV_URL = mount.getAttribute("data-csv-url") || new URL("./jardin.csv", window.location.href).toString();
 
   function postHeight() {
     const h = Math.max(
@@ -14,9 +16,7 @@
       document.body.offsetHeight,
       document.documentElement.offsetHeight
     );
-    try {
-      window.parent && window.parent.postMessage({ type: "pcw:resize", height: h }, "*");
-    } catch {}
+    window.parent && window.parent.postMessage({ type: "pcw:resize", height: h }, "*");
   }
 
   const ro = new ResizeObserver(() => postHeight());
@@ -89,7 +89,6 @@
     const rows = lines.slice(1).map(l => splitCSVLine(l, sep));
     return { headers, rows };
   }
-
   function mapRows(headers, rows){
     const map = {};
     headers.forEach((h, i) => { map[norm(h)] = i; });
@@ -113,7 +112,6 @@
       const get = (i) => (i >= 0 && i < r.length) ? String(r[i] ?? "").trim() : "";
       const product = get(iProd);
       if (!product) continue;
-
       out.push({
         category: get(iCat),
         product,
@@ -163,7 +161,6 @@
   function setChips(categories){
     const catsEl = $('[data-slot="cats"]');
     const cats = ["Tout", ...categories.sort((a,b)=>a.localeCompare(b,"fr"))];
-
     catsEl.innerHTML = cats.map((c, i) => `
       <button class="pcw-chip" type="button" aria-pressed="${i===0 ? "true":"false"}" data-cat="${escapeAttr(c)}">${escapeHtml(c)}</button>
     `).join("");
@@ -303,7 +300,8 @@
 
   (async () => {
     try {
-      const res = await fetch(CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now(), { cache: "no-store" });
+      const url = CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now();
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`CSV HTTP ${res.status}`);
       const text = await res.text();
 
